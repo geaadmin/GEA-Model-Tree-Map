@@ -1,0 +1,115 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Treemap</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow-x: hidden; /* Prevent horizontal overflow */
+            box-sizing: border-box; /* Include padding and border in element sizes */
+        }
+        #treemap {
+            width: 100%;
+            height: 100%;
+        }
+        .node rect {
+            stroke: #fff;
+        }
+        .child rect {
+            stroke: #333;
+        }
+        .node text, .child text {
+            pointer-events: none;
+            font-size: 15px;
+            fill: #fff;
+        }
+    </style>
+</head>
+<body>
+<div id="treemap"></div>
+<script>
+    const data = {
+        name: "GEA Standard",
+        children: [
+            { name: "Leadership and Ethical Governance", children: [{ name: "Mission", value: 100 }, { name: "Vision", value: 100 }, { name: "Values", value: 100 }] },
+            { name: "Innovation-Driven Strategic Planning", children: [{ name: "Strategic Goals", value: 100 }, { name: "Innovation Culture", value: 100 }] },
+            { name: "Customer Focus and Value Creation", children: [{ name: "Customer Needs", value: 100 }, { name: "Value Proposition", value: 100 }] },
+            { name: "Workforce Engagement and Safety", children: [{ name: "Employee Engagement", value: 100 }, { name: "Workplace Safety", value: 100 }] },
+            { name: "Digital Innovation and Process Efficiency", children: [{ name: "Digital Transformation", value: 100 }, { name: "Process Optimization", value: 100 }] },
+            { name: "Results-Driven Performance and Sustainability", children: [{ name: "Performance Metrics", value: 100 }, { name: "Sustainability Goals", value: 100 }] },
+            { name: "Regulatory Compliance and Governance", children: [{ name: "Compliance Management", value: 100 }, { name: "Governance Structure", value: 100 }] },
+            { name: "Financial Performance", children: [{ name: "Revenue Growth", value: 100 }, { name: "Cost Management", value: 100 }] }
+        ]
+    };
+
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+    let treemap = d3.treemap();
+
+    function drawTreemap() {
+        const width = document.getElementById('treemap').clientWidth;
+        const height = document.getElementById('treemap').clientHeight;
+        treemap.size([width, height]).padding(1);
+
+        let root = d3.hierarchy(data).sum(d => d.value);
+        treemap(root);
+
+        d3.select("#treemap svg").remove(); // Clear previous SVG
+        const svg = d3.select("#treemap").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Main category nodes
+        const nodes = svg.selectAll(".node")
+            .data(root.descendants().filter(d => d.depth === 1))
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("transform", d => `translate(${d.x0},${d.y0})`);
+
+        nodes.append("rect")
+            .attr("width", d => d.x1 - d.x0)
+            .attr("height", d => d.y1 - d.y0)
+            .attr("fill", d => color(d.data.name));
+
+        nodes.append("text")
+            .attr("dx", 5)
+            .attr("dy", 20)
+            .text(d => d.data.name);
+
+        // Handling hover events
+        nodes.on("mouseenter", function(event, d) {
+            d3.select(this).select("rect").style("fill-opacity", 0.5);
+
+            const children = d.children || [];
+
+            const childNodes = d3.select(this).selectAll(".child")
+                .data(children)
+                .enter().append("g")
+                .attr("class", "child")
+                .attr("transform", child => `translate(${child.x0 - d.x0},${child.y0 - d.y0})`);
+
+            childNodes.append("rect")
+                .attr("width", child => child.x1 - child.x0)
+                .attr("height", child => child.y1 - child.y0)
+                .attr("fill", d => color(d.data.name));
+
+            childNodes.append("text")
+                .attr("dx", 5)
+                .attr("dy", 20)
+                .text(child => child.data.name);
+        });
+
+        nodes.on("mouseleave", function() {
+            d3.select(this).select("rect").style("fill-opacity", 1);
+            d3.select(this).selectAll(".child").remove();
+        });
+    }
+
+    drawTreemap(); // Initial draw
+    window.onresize = drawTreemap; // Redraw on window resize
+</script>
+</body>
+</html>
